@@ -1,0 +1,56 @@
+name: py39 linux,win+macos
+on:
+  push:
+    branches:
+      - 'develop/*'
+  workflow_dispatch:
+env:
+  PYTHON_VERSION: '3.9'
+  PREFIX_TOX: 'py39-test-'
+jobs:
+  linux:
+    name: Linux tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toxenv: [pytestoldest, pytest50, pytest51, pytest60, pytest62]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{  env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: '**/tox.ini'
+      - name: Update Pip
+        run: python -m pip install --upgrade pip
+      - name: Install Tox
+        run: pip install tox
+      - name: Run Tox
+        run: tox -v -e ${{ env.PREFIX_TOX }}${{ matrix.toxenv }}
+  others:
+    name: Windows and macOS tests
+    needs: linux
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [windows-latest, macos-13]
+        toxenv: [pytestoldest, pytest50, pytest51, pytest60, pytest62]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python ${{  env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{  env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: '**/tox.ini'
+      - name: Update Pip
+        run: python -m pip install --upgrade pip
+      - name: Install Tox
+        run: pip install tox
+      - name: Run Tox
+        run: tox -v -e ${{ env.PREFIX_TOX }}${{ matrix.toxenv }}
